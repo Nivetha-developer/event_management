@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<style>
+body {font-family: Arial, Helvetica, sans-serif;}
+body {font-family: Arial, Helvetica, sans-serif;}
+@media only screen and (min-width: 992px) {
+/* Center the image and position the close button */
+.modal-content {
+   background-color: #fefefe;
+   margin: 5% auto 15% auto; /* 5% from the top, 15% from the bottom and centered */
+   border: 1px solid #888;
+   width: 40%; /* Could be more or less, depending on screen size */
+   }
+.imgcontainer {
+  text-align: center;
+  margin: 24px 0 12px 0;
+  position: relative;
+}
+.content{
+   padding-left: 20%;
+   padding-right:20%;
+   word-wrap: break-word;
+}
+.img{
+   width: 60%;
+}
+/* Modal Content/Box */
+.modal-content {
+  background-color: #fefefe;
+  margin: 5% auto 15% auto; /* 5% from the top, 15% from the bottom and centered */
+  border: 1px solid #888;
+  width: 40%; /* Could be more or less, depending on screen size */
+}
+.pass{
+   /* display: block; */
+   padding-left: 20%;
+   display: flex; 
+   /* justify-content: center; */
+   }
+   .show {
+      margin-left: 250px;
+      padding: 10px;
+   }
+   .msg {
+      text-align: center;
+      padding: 5px;
+   }
+}
+@media only screen and (max-width: 600px){
+   .imgcontainer {
+      text-align: center;
+      margin: 24px 0 12px 0;
+      position: relative;
+   }
+   .img{
+      width: 30%;
+   }
+}
+
+</style>
+</head>
+<body>
+
+<div class="modal-content animate">
+<br>
+   <div class="pass">
+      <p id="commonHeader">Token&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+      <input id="token" value="">
+   </div>
+   <br>
+   <div class="pass">
+      <p id="commonHeader">Tickets&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+      <input id="ticket" value="" required="required" class="commanClass">
+   </div>
+   <br>
+
+   <div class="pass">
+      <p id="commonHeader">Event&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+      <select id="event">
+         <option value="" disabled selected>Please select an event</option>
+      </select>
+   </div>
+   <br>
+   <div class="pass">
+      <p id="commonHeader">Date&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+      <input id="date" class="commanClass" placeholder="Select date">
+   </div>
+   <br>
+   <div class="d-flex justify-content-center">
+      <input type="submit" value="submit" id="continue" class="btn btn-primary py-2 px-4">
+   </div>
+   <br>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>  
+<script>
+$(document).ready(function() {
+  var datepicker = flatpickr("#date", {
+    enableTime: false,
+    dateFormat: "Y-m-d",
+    minDate: "today",
+    altInput: true,
+    altFormat: "F j, Y",
+    placeholder: "Select a date"
+  });
+
+  $.ajax({
+    url: 'http://127.0.0.1:8000/api/event_get',
+    type: 'get',
+    success: function(response) {
+      var events = response.data;
+      var dropdown = $('#event');
+      for (var i = 0; i < events.length; i++) {
+        var option = $('<option></option>').attr('value', events[i].id).text(events[i].name);
+        option.attr('data-start', events[i].start_date); // Add start date attribute
+        option.attr('data-end', events[i].end_date); // Add end date attribute
+        dropdown.append(option);
+      }
+    },
+    error: function(xhr, textStatus, errorThrown) {
+      alert("Error: " + xhr.status + " " + errorThrown);
+    }
+  });
+
+  $(document).on('change', '#event', function(){
+    var selectedEvent = $(this).find(':selected');
+    var startDate = new Date(selectedEvent.attr('data-start'));
+    var endDate = new Date(selectedEvent.attr('data-end'));
+    datepicker.set('minDate', startDate);
+    datepicker.set('maxDate', endDate);
+  });
+
+  $(document).on('click', '#continue', function(){
+    var token = $('#token').val();
+    var ticket = $('#ticket').val();
+    var event = $('#event').val();
+    var date = $('#date').val();
+    
+    if (token === '' || ticket === '' || event === '' || date === ''){
+      alert("Please enter all the fields");
+    }else if (event === null) {
+    alert("Please select an event")}
+     else {
+      $.ajax({
+         url: '/api/booking',
+         type: 'post',
+         data: {
+            'token': token,
+            'event': event,
+            'ticket': ticket,
+            'date': date
+         },
+         success: function(response) {
+            console.log(response.data.data);
+            console.log(response.data);
+
+            if (response.data === "booked successfully") {
+               location.href = '/api/success';
+            } else {
+               alert("Booking failed");
+            }
+         },
+         error: function(xhr, textStatus, errorThrown) {
+            if (xhr.status === 400) {
+               var errorData = xhr.responseJSON.data;
+               alert("Error: " + errorData);
+            } else {
+               alert("Error: " + xhr.status + " " + errorThrown);
+            }
+         }
+         });
+
+    }
+  });
+});
+</script>
+</body>
+</html>
